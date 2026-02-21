@@ -1,4 +1,4 @@
-const SIGNALING_URL = window.SIGNALING_SERVER_URL || 'https://strapp.onrender.com';
+const SIGNALING_URL = window.SIGNALING_SERVER_URL || 'https://seee.onrender.com';
 const socket = io(SIGNALING_URL, {
   transports: ['websocket', 'polling'],
   withCredentials: false,
@@ -137,8 +137,16 @@ async function createPeerConnection(remoteId, shouldCreateOffer) {
   };
 
   pc.ontrack = (event) => {
-    event.streams[0].getTracks().forEach((track) => {
-      remoteStream.addTrack(track);
+    const incomingTracks = event.streams?.[0]?.getTracks?.() || [event.track];
+    incomingTracks.forEach((track) => {
+      if (!track) {
+        return;
+      }
+
+      const alreadyAdded = remoteStream.getTracks().some((existing) => existing.id === track.id);
+      if (!alreadyAdded) {
+        remoteStream.addTrack(track);
+      }
     });
 
     if (remoteStream.getVideoTracks().length > 0) {
@@ -339,7 +347,7 @@ socket.on('participant-joined', async (user) => {
   renderParticipants();
 
   if (user.id !== selfId) {
-    await createPeerConnection(user.id, true);
+    await createPeerConnection(user.id, false);
     addMessage({ from: 'system', text: `${user.username} joined.` });
   }
 });

@@ -11,7 +11,7 @@ const PORT = process.env.PORT || 3000;
 const MAX_PARTICIPANTS = 4;
 const ALLOWED_USERNAMES = new Set(['shradha', 'chaitanya', 'shradha2424', 'chaittnya1414']);
 
-const allowed = ["http://localhost:8081", "http://127.0.0.1:5500"];
+const allowed = ["http://127.0.0.1:8081", "http://127.0.0.1:5500", "http://127.0.0.1:5501", "http://127.0.0.1:8082"];
 
 app.use(cors({
   origin: (origin, cb) => {

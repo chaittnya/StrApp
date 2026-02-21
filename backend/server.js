@@ -1,6 +1,7 @@
 const path = require('path');
 const express = require('express');
 const http = require('http');
+const cors = require("cors");
 const { Server } = require('socket.io');
 
 const app = express();
@@ -8,7 +9,11 @@ const server = http.createServer(app);
 
 const PORT = process.env.PORT || 3000;
 const MAX_PARTICIPANTS = 4;
-const ALLOWED_USERNAMES = new Set(['host', 'friend1', 'friend2', 'friend3']);
+const ALLOWED_USERNAMES = new Set(['chaittnyapqr', 'shradha2424', 'chaittnya1414', 'shradhapqr']);
+
+app.use(cors({
+  origin: "http://localhost:8081"
+}));
 
 const io = new Server(server);
 

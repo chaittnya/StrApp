@@ -12,7 +12,7 @@ const MAX_PARTICIPANTS = 4;
 const ALLOWED_USERNAMES = new Set(['chaittnyapqr', 'shradha2424', 'chaittnya1414', 'shradhapqr']);
 
 app.use(cors({
-  origin: "http://localhost:8081"
+  origin: "http://127.0.0.1:5500"
 }));
 
 const io = new Server(server);

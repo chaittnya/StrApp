@@ -1,0 +1,170 @@
+:root {
+  color-scheme: dark;
+  --bg: #0f131a;
+  --surface: #161d27;
+  --muted: #96a4ba;
+  --text: #e9eef7;
+  --accent: #4c8dff;
+  --danger: #ff6b7a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.app-shell {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.status {
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.card,
+.join-card {
+  background: var(--surface);
+  border: 1px solid #253248;
+  border-radius: 12px;
+  padding: 1rem;
+}
+
+.join-card {
+  max-width: 440px;
+}
+
+label,
+p {
+  color: var(--muted);
+}
+
+input,
+button {
+  width: 100%;
+  padding: 0.7rem 0.8rem;
+  border-radius: 10px;
+  border: 1px solid #2f3b51;
+  background: #0f1520;
+  color: var(--text);
+  margin-top: 0.35rem;
+}
+
+button {
+  cursor: pointer;
+  border-color: #4568a8;
+}
+
+button:hover {
+  border-color: var(--accent);
+}
+
+.error {
+  min-height: 1.2rem;
+  color: var(--danger);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 1rem;
+}
+
+.hidden {
+  display: none;
+}
+
+.video-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+video {
+  width: 100%;
+  max-height: 65vh;
+  border-radius: 10px;
+  background: #090c12;
+}
+
+.meta-row {
+  margin-top: 0.6rem;
+  display: flex;
+  justify-content: space-between;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.participants {
+  list-style: none;
+  padding: 0;
+  margin: 0.6rem 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.participants li {
+  padding: 0.2rem 0.55rem;
+  border-radius: 99px;
+  border: 1px solid #31405a;
+  font-size: 0.82rem;
+}
+
+.chat-log {
+  height: 60vh;
+  overflow-y: auto;
+  border: 1px solid #2c394e;
+  border-radius: 10px;
+  padding: 0.7rem;
+  background: #111824;
+}
+
+.msg {
+  margin-bottom: 0.55rem;
+  line-height: 1.35;
+}
+
+.msg strong {
+  color: #9ac0ff;
+}
+
+.chat-form {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.7rem;
+}
+
+.chat-form input {
+  margin: 0;
+}
+
+.chat-form button {
+  width: auto;
+}
+
+@media (max-width: 860px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .chat-log {
+    height: 35vh;
+  }
+}

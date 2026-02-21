@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>StrApp · P2P Watch Party</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <h1>StrApp</h1>
+        <div class="status" id="statusText">Disconnected</div>
+      </header>
+
+      <section class="join-card" id="joinCard">
+        <h2>Join watch party</h2>
+        <p>Use one of the predefined usernames and share this link directly.</p>
+        <label for="usernameInput">Username</label>
+        <input id="usernameInput" placeholder="host / friend1 / friend2 / friend3" />
+        <button id="joinBtn">Join</button>
+        <p id="joinError" class="error"></p>
+      </section>
+
+      <section class="grid hidden" id="appGrid">
+        <section class="video-col card">
+          <div class="video-actions">
+            <button id="shareTabBtn">Share Chrome Tab + Audio</button>
+            <button id="muteMicBtn">Mute mic</button>
+            <button id="muteRemoteBtn">Mute remote audio</button>
+            <button id="playPauseBtn">Play/Pause sync</button>
+          </div>
+
+          <video id="partyVideo" controls autoplay playsinline></video>
+          <input id="seekRange" type="range" min="0" max="100" value="0" step="0.1" />
+
+          <div class="meta-row">
+            <span id="participantsCount">0 / 4 participants</span>
+            <span id="userBadge"></span>
+          </div>
+
+          <ul id="participantsList" class="participants"></ul>
+        </section>
+
+        <section class="chat-col card">
+          <h3>Chat</h3>
+          <div id="chatLog" class="chat-log"></div>
+          <form id="chatForm" class="chat-form">
+            <input id="chatInput" placeholder="Type a message" maxlength="800" />
+            <button type="submit">Send</button>
+          </form>
+        </section>
+      </section>
+    </main>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>

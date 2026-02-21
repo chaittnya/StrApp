@@ -1,4 +1,8 @@
-const socket = io();
+const SIGNALING_URL = window.SIGNALING_SERVER_URL || 'https://strapp.onrender.com';
+const socket = io(SIGNALING_URL, {
+  transports: ['websocket', 'polling'],
+  withCredentials: false,
+});
 
 const joinCard = document.getElementById('joinCard');
 const appGrid = document.getElementById('appGrid');
@@ -78,27 +82,31 @@ async function ensureMic() {
   return micStream;
 }
 
-function currentShareTracks() {
-  return tabStream ? tabStream.getTracks() : [];
+function upsertTrackSender(peerState, key, track, streamRef) {
+  const sender = peerState.senders[key];
+  if (sender) {
+    sender.replaceTrack(track || null);
+    return;
+  }
+
+  if (track && streamRef) {
+    peerState.senders[key] = peerState.pc.addTrack(track, streamRef);
+  }
 }
 
-function currentMicTracks() {
-  return micStream ? micStream.getAudioTracks() : [];
+function attachLocalTracks(peerState) {
+  const micTrack = micStream?.getAudioTracks()[0] || null;
+  const tabVideoTrack = tabStream?.getVideoTracks()[0] || null;
+  const tabAudioTrack = tabStream?.getAudioTracks()[0] || null;
+
+  upsertTrackSender(peerState, 'micAudio', micTrack, micStream);
+  upsertTrackSender(peerState, 'tabVideo', tabVideoTrack, tabStream);
+  upsertTrackSender(peerState, 'tabAudio', tabAudioTrack, tabStream);
 }
 
-function addLocalTracksToPeer(peer) {
-  currentMicTracks().forEach((track) => peer.addTrack(track, micStream));
-  currentShareTracks().forEach((track) => peer.addTrack(track, tabStream));
-}
-
-function replaceTrackOnPeers(kind, newTrack, streamRef) {
-  peers.forEach(({ pc }) => {
-    const sender = pc.getSenders().find((s) => s.track && s.track.kind === kind);
-    if (sender) {
-      sender.replaceTrack(newTrack || null);
-    } else if (newTrack) {
-      pc.addTrack(newTrack, streamRef);
-    }
+function refreshAllPeerTracks() {
+  peers.forEach((peerState) => {
+    attachLocalTracks(peerState);
   });
 }
 
@@ -109,6 +117,15 @@ async function createPeerConnection(remoteId, shouldCreateOffer) {
 
   const pc = new RTCPeerConnection(rtcConfig);
   const remoteStream = new MediaStream();
+  const peerState = {
+    pc,
+    remoteStream,
+    senders: {
+      micAudio: null,
+      tabAudio: null,
+      tabVideo: null,
+    },
+  };
 
   pc.onicecandidate = (event) => {
     if (event.candidate) {
@@ -124,10 +141,10 @@ async function createPeerConnection(remoteId, shouldCreateOffer) {
       remoteStream.addTrack(track);
     });
 
-    const hasVideo = remoteStream.getVideoTracks().length > 0;
-    if (hasVideo) {
+    if (remoteStream.getVideoTracks().length > 0) {
       partyVideo.srcObject = remoteStream;
       activeShareOwnerId = remoteId;
+      partyVideo.muted = isRemoteMuted || activeShareOwnerId === selfId;
       renderParticipants();
     }
   };
@@ -138,8 +155,8 @@ async function createPeerConnection(remoteId, shouldCreateOffer) {
     }
   };
 
-  addLocalTracksToPeer(pc);
-  peers.set(remoteId, { pc, remoteStream });
+  peers.set(remoteId, peerState);
+  attachLocalTracks(peerState);
 
   if (shouldCreateOffer) {
     const offer = await pc.createOffer();
@@ -178,10 +195,7 @@ async function handleSignal({ from, data }) {
 }
 
 function broadcastSync(action, value) {
-  socket.emit('sync-event', {
-    action,
-    value,
-  });
+  socket.emit('sync-event', { action, value });
 }
 
 joinBtn.addEventListener('click', async () => {
@@ -195,6 +209,7 @@ joinBtn.addEventListener('click', async () => {
 
   try {
     await ensureMic();
+    refreshAllPeerTracks();
     socket.emit('join-room', { username: selfUsername });
   } catch (error) {
     joinError.textContent = `Mic permission failed: ${error.message}`;
@@ -210,26 +225,21 @@ shareTabBtn.addEventListener('click', async () => {
         noiseSuppression: false,
         autoGainControl: false,
       },
-      preferCurrentTab: true,
+      preferCurrentTab: false,
     });
 
     partyVideo.srcObject = tabStream;
-    partyVideo.muted = true;
     activeShareOwnerId = selfId;
+    partyVideo.muted = true;
     renderParticipants();
 
-    const [videoTrack] = tabStream.getVideoTracks();
-    const [audioTrack] = tabStream.getAudioTracks();
-
-    replaceTrackOnPeers('video', videoTrack || null, tabStream);
-    replaceTrackOnPeers('audio', audioTrack || null, tabStream);
+    refreshAllPeerTracks();
 
     tabStream.getVideoTracks()[0]?.addEventListener('ended', () => {
       activeShareOwnerId = null;
-      renderParticipants();
-      replaceTrackOnPeers('video', null, tabStream);
-      replaceTrackOnPeers('audio', null, tabStream);
       tabStream = null;
+      renderParticipants();
+      refreshAllPeerTracks();
     });
   } catch (error) {
     joinError.textContent = `Tab share failed: ${error.message}`;
@@ -238,7 +248,7 @@ shareTabBtn.addEventListener('click', async () => {
 
 muteMicBtn.addEventListener('click', () => {
   isMicMuted = !isMicMuted;
-  currentMicTracks().forEach((track) => {
+  micStream?.getAudioTracks().forEach((track) => {
     track.enabled = !isMicMuted;
   });
   muteMicBtn.textContent = isMicMuted ? 'Unmute mic' : 'Mute mic';
@@ -250,18 +260,19 @@ muteRemoteBtn.addEventListener('click', () => {
   muteRemoteBtn.textContent = isRemoteMuted ? 'Unmute remote audio' : 'Mute remote audio';
 });
 
-playPauseBtn.addEventListener('click', () => {
+playPauseBtn.addEventListener('click', async () => {
   if (!partyVideo.srcObject) {
     return;
   }
 
   if (partyVideo.paused) {
-    partyVideo.play();
+    await partyVideo.play();
     broadcastSync('play');
-  } else {
-    partyVideo.pause();
-    broadcastSync('pause');
+    return;
   }
+
+  partyVideo.pause();
+  broadcastSync('pause');
 });
 
 partyVideo.addEventListener('timeupdate', () => {
@@ -302,7 +313,7 @@ socket.on('joined-room', async ({ selfId: id, participants: initialUsers, limits
   joinCard.classList.add('hidden');
   appGrid.classList.remove('hidden');
   userBadge.textContent = `You: ${selfUsername}`;
-  setStatus('Connected');
+  setStatus(`Connected to ${SIGNALING_URL}`);
 
   initialUsers.forEach((user) => participants.set(user.id, user));
   renderParticipants();
@@ -352,17 +363,19 @@ socket.on('chat-message', ({ from, text }) => {
   addMessage({ from, text });
 });
 
-socket.on('sync-event', ({ action, value }) => {
+socket.on('sync-event', async ({ action, value }) => {
   if (!partyVideo.srcObject) {
     return;
   }
 
   if (action === 'play') {
-    partyVideo.play();
+    await partyVideo.play();
+    return;
   }
 
   if (action === 'pause') {
     partyVideo.pause();
+    return;
   }
 
   if (action === 'seek') {
@@ -375,7 +388,12 @@ socket.on('sync-event', ({ action, value }) => {
 });
 
 socket.on('connect', () => {
-  setStatus('Socket connected');
+  setStatus(`Socket connected: ${SIGNALING_URL}`);
+});
+
+socket.on('connect_error', (error) => {
+  setStatus('Connection error');
+  joinError.textContent = `Backend unreachable (${SIGNALING_URL}): ${error.message}`;
 });
 
 socket.on('disconnect', () => {

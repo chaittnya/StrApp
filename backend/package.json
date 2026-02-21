@@ -1,0 +1,14 @@
+{
+  "name": "strapp",
+  "version": "1.0.0",
+  "description": "Peer-to-peer watch party with tab audio, voice chat, sync controls, and chat.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "check": "node --check server.js && node --check public/app.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "socket.io": "^4.8.1"
+  }
+}

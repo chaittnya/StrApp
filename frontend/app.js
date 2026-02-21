@@ -1,4 +1,4 @@
-const SIGNALING_URL = window.SIGNALING_SERVER_URL || 'https://seee.onrender.com';
+const SIGNALING_URL = window.SIGNALING_SERVER_URL || 'https://strapp.onrender.com';
 const socket = io(SIGNALING_URL, {
   transports: ['websocket', 'polling'],
   withCredentials: false,

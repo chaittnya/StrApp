@@ -1,4 +1,4 @@
-const SIGNALING_URL = window.SIGNALING_SERVER_URL || 'https://strapp.onrender.com';
+const SIGNALING_URL = window.SIGNALING_SERVER_URL || 'https://seee.onrender.com';
 const socket = io(SIGNALING_URL, {
   transports: ['websocket', 'polling'],
   withCredentials: false,
@@ -82,16 +82,13 @@ async function ensureMic() {
   return micStream;
 }
 
-function upsertTrackSender(peerState, key, track, streamRef) {
+function upsertTrackSender(peerState, key, track) {
   const sender = peerState.senders[key];
-  if (sender) {
-    sender.replaceTrack(track || null);
+  if (!sender) {
     return;
   }
 
-  if (track && streamRef) {
-    peerState.senders[key] = peerState.pc.addTrack(track, streamRef);
-  }
+  sender.replaceTrack(track || null);
 }
 
 function attachLocalTracks(peerState) {
@@ -99,9 +96,9 @@ function attachLocalTracks(peerState) {
   const tabVideoTrack = tabStream?.getVideoTracks()[0] || null;
   const tabAudioTrack = tabStream?.getAudioTracks()[0] || null;
 
-  upsertTrackSender(peerState, 'micAudio', micTrack, micStream);
-  upsertTrackSender(peerState, 'tabVideo', tabVideoTrack, tabStream);
-  upsertTrackSender(peerState, 'tabAudio', tabAudioTrack, tabStream);
+  upsertTrackSender(peerState, 'micAudio', micTrack);
+  upsertTrackSender(peerState, 'tabVideo', tabVideoTrack);
+  upsertTrackSender(peerState, 'tabAudio', tabAudioTrack);
 }
 
 function refreshAllPeerTracks() {
@@ -117,13 +114,16 @@ async function createPeerConnection(remoteId, shouldCreateOffer) {
 
   const pc = new RTCPeerConnection(rtcConfig);
   const remoteStream = new MediaStream();
+  const micAudioTransceiver = pc.addTransceiver('audio', { direction: 'sendrecv' });
+  const tabAudioTransceiver = pc.addTransceiver('audio', { direction: 'sendrecv' });
+  const tabVideoTransceiver = pc.addTransceiver('video', { direction: 'sendrecv' });
   const peerState = {
     pc,
     remoteStream,
     senders: {
-      micAudio: null,
-      tabAudio: null,
-      tabVideo: null,
+      micAudio: micAudioTransceiver.sender,
+      tabAudio: tabAudioTransceiver.sender,
+      tabVideo: tabVideoTransceiver.sender,
     },
   };
 
@@ -219,13 +219,18 @@ joinBtn.addEventListener('click', async () => {
 shareTabBtn.addEventListener('click', async () => {
   try {
     tabStream = await navigator.mediaDevices.getDisplayMedia({
-      video: { frameRate: 30 },
+      video: {
+        frameRate: 30,
+      },
       audio: {
         echoCancellation: false,
         noiseSuppression: false,
         autoGainControl: false,
       },
+      // Important: avoid forcing current tab so Chrome shows all shareable tabs.
       preferCurrentTab: false,
+      // Hint Chrome to keep tab switching available during an active share.
+      surfaceSwitching: 'include',
     });
 
     partyVideo.srcObject = tabStream;

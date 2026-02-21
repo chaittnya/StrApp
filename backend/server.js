@@ -9,10 +9,15 @@ const server = http.createServer(app);
 
 const PORT = process.env.PORT || 3000;
 const MAX_PARTICIPANTS = 4;
-const ALLOWED_USERNAMES = new Set(['chaittnyapqr', 'shradha2424', 'chaittnya1414', 'shradhapqr']);
+const ALLOWED_USERNAMES = new Set(['shradha', 'chaitanya', 'shradha2424', 'chaittnya1414']);
+
+const allowed = ["http://localhost:8081", "http://127.0.0.1:5500"];
 
 app.use(cors({
-  origin: "http://127.0.0.1:5500"
+  origin: (origin, cb) => {
+    if (!origin || allowed.includes(origin)) cb(null, true);
+    else cb(new Error("Not allowed by CORS"));
+  }
 }));
 
 const io = new Server(server);
